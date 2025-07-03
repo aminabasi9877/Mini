@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>مین‌یاب ساده</title>
+<style>
+  body {
+    font-family: Tahoma, sans-serif;
+    text-align: center;
+    background: #f9f9f9;
+  }
+  h1 {
+    margin-top: 20px;
+  }
+  #game {
+    display: inline-grid;
+    grid-template-columns: repeat(5, 50px);
+    grid-gap: 5px;
+    margin-top: 30px;
+  }
+  .cell {
+    width: 50px;
+    height: 50px;
+    background: #ccc;
+    border: 1px solid #999;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 50px;
+    user-select: none;
+  }
+  .cell.revealed {
+    background: #eee;
+    cursor: default;
+  }
+  .cell.mine {
+    background: red;
+    color: white;
+  }
+  #status {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+  }
+  button#reset {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<h1>مین‌یاب ساده</h1>
+<div id="game"></div>
+<div id="status"></div>
+<button id="reset">شروع مجدد</button>
+
+<script>
+  const rows = 5;
+  const cols = 5;
+  const minesCount = 5;
+  let board = [];
+  let revealedCount = 0;
+  let gameOver = false;
+
+  const gameDiv = document.getElementById('game');
+  const statusDiv = document.getElementById('status');
+  const resetBtn = document.getElementById('reset');
+
+  function init() {
+    board = [];
+    revealedCount = 0;
+    gameOver = false;
+    statusDiv.textContent = '';
+    gameDiv.innerHTML = '';
+    // ساخت ماتریس بازی
+    for(let r=0; r<rows; r++) {
+      board[r] = [];
+      for(let c=0; c<cols; c++) {
+        board[r][c] = {
+          mine: false,
+          revealed: false,
+          adjacentMines: 0,
+          element: null,
+        };
+      }
+    }
+    placeMines();
+    calculateAdjacents();
+    renderBoard();
+  }
+
+  function placeMines() {
+    let placed = 0;
+    while(placed < minesCount) {
+      let r = Math.floor(Math.random() * rows);
+      let c = Math.floor(Math.random() * cols);
+      if(!board[r][c].mine) {
+        board[r][c].mine = true;
+        placed++;
+      }
+    }
+  }
+
+  function calculateAdjacents() {
+    for(let r=0; r<rows; r++) {
+      for(let c=0; c<cols; c++) {
+        if(board[r][c].mine) continue;
+        let count = 0;
+        for(let dr=-1; dr<=1; dr++) {
+          for(let dc=-1; dc<=1; dc++) {
+            let nr = r + dr;
+            let nc = c + dc;
+            if(nr>=0 && nr<rows && nc>=0 && nc<cols && board[nr][nc].mine) {
+              count++;
+            }
+          }
+        }
+        board[r][c].adjacentMines = count;
+      }
+    }
+  }
+
+  function renderBoard() {
+    for(let r=0; r<rows; r++) {
+      for(let c=0; c<cols; c++) {
+        let cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.addEventListener('click', () => revealCell(r,c));
+        gameDiv.appendChild(cell);
+        board[r][c].element = cell;
+      }
+    }
+  }
+
+  function revealCell(r,c) {
+    if(gameOver) return;
+    let cell = board[r][c];
+    if(cell.revealed) return;
+    cell.revealed = true;
+    cell.element.classList.add('revealed');
+
+    if(cell.mine) {
+      cell.element.classList.add('mine');
+      statusDiv.textContent = '💥 باختی! مین رو پیدا کردی!';
+      gameOver = true;
+      revealAllMines();
+      return;
+    }
+
+    revealedCount++;
+    if(cell.adjacentMines > 0) {
+      cell.element.textContent = cell.adjacentMines;
+    } else {
+      // اگه اطراف خونه مین نبود، خونه‌های مجاور رو هم باز کن
+      for(let dr=-1; dr<=1; dr++) {
+        for(let dc=-1; dc<=1; dc++) {
+          let nr = r + dr;
+          let nc = c + dc;
+          if(nr>=0 && nr<rows && nc>=0 && nc<cols) {
+            if(!board[nr][nc].revealed) revealCell(nr,nc);
+          }
+        }
+      }
+    }
+
+    if(revealedCount === rows*cols - minesCount) {
+      statusDiv.textContent = '🎉 تبریک! برنده شدی!';
+      gameOver = true;
+      revealAllMines();
+    }
+  }
+
+  function revealAllMines() {
+    for(let r=0; r<rows; r++) {
+      for(let c=0; c<cols; c++) {
+        if(board[r][c].mine) {
+          board[r][c].element.classList.add('mine');
+        }
+      }
+    }
+  }
+
+  resetBtn.addEventListener('click', init);
+
+  init();
+</script>
+</body>
+</html>
+
